@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #181b34;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-poppins);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #181b34;
+    --foreground: #f0f3ff;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Poppins", system-ui, sans-serif;
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease;
+}
+
+/* ── Brand tokens ── */
+:root {
+  --color-brand-navy: #181b34; /* primary / dark */
+  --color-brand-gold: #f5c518; /* accent — from logo */
+  --color-brand-light: #f0f3ff; /* background tint */
+}
+
+/* ── Smooth scroll ── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Dark mode base ── */
+html.dark body {
+  background-color: #181b34;
+  color: #f0f3ff;
+}
+
+html.light body {
+  background-color: #ffffff;
+  color: #181b34;
+}
+
+/* ── Selection highlight ── */
+::selection {
+  background-color: #f5c518;
+  color: #181b34;
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #f5c518;
+  border-radius: 3px;
+}
+
+/* ── Framer Motion hardware acceleration ── */
+[data-framer-component-type] {
+  will-change: transform, opacity;
+}
