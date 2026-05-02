@@ -51,7 +51,7 @@ function Lightbox({
                         beforeImage={pair.before}
                         afterImage={pair.after}
                         mode="drag"
-                        style={{ width: "100%" }}
+                        style={{ width: "100%", height: "75vh" }}
                         buttonStyle={{ width: 44, height: 44 }}
                     />
                     {pair.label && (
@@ -142,9 +142,9 @@ export default function ProjectDetailClient({
                         </p>
                         <div className="space-y-3">
                             {[
-                                { label: "Category",        value: project.category },
-                                { label: "Style",           value: project.style },
-                                { label: "Location",        value: project.location },
+                                { label: "Category", value: project.category },
+                                { label: "Style", value: project.style },
+                                { label: "Location", value: project.location },
                                 { label: "Transformations", value: `${project.project_images.length} space${project.project_images.length !== 1 ? "s" : ""}` },
                             ].map(({ label, value }) => (
                                 <div
@@ -205,7 +205,7 @@ export default function ProjectDetailClient({
                                         beforeImage={pair.before}
                                         afterImage={pair.after}
                                         mode="drag"
-                                        style={{ width: "100%" }}
+                                        style={{ width: "100%", aspectRatio: "16/9" }}
                                         buttonStyle={{ width: 44, height: 44 }}
                                     />
                                     <button

@@ -167,7 +167,7 @@ export default function ProjectsHubClient() {
                                         beforeImage={firstProject.cover_before}
                                         afterImage={firstProject.cover_after}
                                         mode="drag"
-                                        style={{ width: "100%" }}
+                                        style={{ width: "100%", aspectRatio: "4/3" }}
                                     />
                                     <p className={`text-[10px] tracking-widest uppercase font-semibold font-['Poppins'] mt-3 ${isDark ? "text-white/30" : "text-slate-400"}`}>
                                         {firstProject.title} — Drag slider to compare
