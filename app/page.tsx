@@ -1,4 +1,18 @@
+import type { Metadata } from "next";
 import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query";
+
+export const metadata: Metadata = {
+  title: "Yuri Perfections | Interior & Exterior Finishing, Kampala Uganda",
+  description:
+    "Yuri Perfections transforms spaces in Kampala with precision craftsmanship — ceiling installations, custom cabinetry, wall partitioning, interior and exterior painting. Request a free quote today.",
+  alternates: { canonical: "https://yuriperfections.com" },
+  openGraph: {
+    url: "https://yuriperfections.com",
+    title: "Yuri Perfections | Interior & Exterior Finishing, Kampala Uganda",
+    description:
+      "Transforming residential and commercial spaces across Uganda with precision craftsmanship. Ceiling systems, custom cabinetry, wall partitioning, painting.",
+  },
+};
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import About from "@/components/About";

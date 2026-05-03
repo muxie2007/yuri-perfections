@@ -18,8 +18,17 @@ export async function generateMetadata({ params }: PageProps) {
     const project = allProjects.find((p) => p.slug === slug);
     if (!project) return {};
     return {
-        title: `${project.title} | Before & After | Yuri Perfections`,
+        title: `${project.title} | Before & After`,
         description: project.description,
+        alternates: { canonical: `https://yuriperfections.com/projects/${slug}` },
+        openGraph: {
+            url: `https://yuriperfections.com/projects/${slug}`,
+            title: `${project.title} | Before & After | Yuri Perfections`,
+            description: project.description,
+            ...(project.cover_after && {
+                images: [{ url: project.cover_after, alt: project.title }],
+            }),
+        },
     };
 }
 
