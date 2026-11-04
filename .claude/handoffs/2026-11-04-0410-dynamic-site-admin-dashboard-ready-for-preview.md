@@ -9,7 +9,7 @@ visitor statistics; Playwright tests, docs, plan and handoff; upgrade Next.js to
 Plan: [.claude/plans/2026-11-03-dynamic-site-and-dashboard.md](../plans/2026-11-03-dynamic-site-and-dashboard.md).
 
 ## Status
-**Done and verified; committed on `feature/admin-dashboard` and pushed. Not merged, not live.** The live Supabase
+**Done and verified; committed on `feature/admin-dashboard` and pushed by the user (commits 1–7; push commit 8 too). Not merged, not live.** The live Supabase
 database already has every migration applied. Next: a Vercel preview of the branch, three settings (below), merge.
 
 ## The most important fact for the business
@@ -75,6 +75,7 @@ admin-guide), `AGENTS.md`, `CLAUDE.md`, `README.md`, `.env.example`.
 5. `28d9aa0` feat(dashboard): staff dashboard with inbox, content editors, users and visitors
 6. `45d8a06` test(e2e): Playwright specs for the public site and the dashboard
 7. docs: architecture, database, deployment, analytics and owner guides; handoff (this note)
+8. fix(site): keep page changes instant with smooth in-page scrolling (`data-scroll-behavior="smooth"` on `<html>`, Next 16 opt-in)
 
 ## Uncommitted / in-flight
 None: everything is committed and pushed on the branch. Not merged to `main`.

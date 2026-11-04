@@ -85,7 +85,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
     return (
         // The init script sets the theme class on <html> before React hydrates.
-        <html lang="en" suppressHydrationWarning>
+        // data-scroll-behavior: smooth scrolling (globals.css) for in-page links like #services,
+        // but page-to-page navigation jumps straight to the top (Next 16 opt-in).
+        <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
             <head>
                 <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
             </head>
