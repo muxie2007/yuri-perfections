@@ -2,65 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-    getActiveHeroSlides,
-    subscribeToHeroSlides,
-    HERO_SLIDES_QUERY_KEY,
-} from "@/services/hero-slides-service";
+import type { HeroSlide } from "@/lib/types";
 
-// ── Fallback slides shown while loading or if DB is empty ────────────────────
-const FALLBACK_SLIDES = [
-    {
-        id: -1,
-        image_url:
-            "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1600&q=90",
-        alt_text: "Yuri Perfections project 1",
-    },
-    {
-        id: -2,
-        image_url:
-            "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=90",
-        alt_text: "Yuri Perfections project 2",
-    },
-    {
-        id: -3,
-        image_url:
-            "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1600&q=90",
-        alt_text: "Yuri Perfections project 3",
-    },
+// Shown only if no slide is active, so the hero is never empty.
+const FALLBACK_SLIDES: Pick<HeroSlide, "id" | "image_url" | "alt_text">[] = [
+    { id: -1, image_url: "/yuri/ceil.jpg", alt_text: "Yuri Perfections ceiling work" },
+    { id: -2, image_url: "/yuri/about/untitled-20.jpg", alt_text: "Yuri Perfections interior" },
 ];
 
-// ── Skeleton shown while the first fetch is in-flight ───────────────────────
-function SliderSkeleton() {
-    return (
-        <div className="relative w-[85%] h-[80%] z-20 shadow-2xl lg:absolute lg:w-[165%] lg:h-[130%] lg:bottom-[20%] lg:right-[40%] bg-neutral-200 dark:bg-neutral-800 animate-pulse" />
-    );
-}
-
-export default function Hero() {
+export default function Hero({ slides: dbSlides, text }: { slides: HeroSlide[]; text: string }) {
     const [current, setCurrent] = useState(0);
-    const queryClient = useQueryClient();
-
-    // ── Fetch slides via TanStack Query ──────────────────────────────────────
-    const { data: dbSlides, isPending, isError } = useQuery({
-        queryKey: HERO_SLIDES_QUERY_KEY,
-        queryFn: getActiveHeroSlides,
-    });
-
-
-    // ── Wire up Supabase realtime (defined in service file) ──────────────────
-    useEffect(() => {
-        const unsubscribe = subscribeToHeroSlides(queryClient);
-        return () => unsubscribe();
-    }, [queryClient]);
-
-    // Use DB slides when available; fall back to hardcoded set
-    const slides =
-        !isPending && !isError && dbSlides && dbSlides.length > 0
-            ? dbSlides
-            : FALLBACK_SLIDES;
-
+    const slides = dbSlides.length > 0 ? dbSlides : FALLBACK_SLIDES;
     const nextIndex = (current + 1) % slides.length;
 
     // ── Auto-advance ─────────────────────────────────────────────────────────
@@ -69,14 +21,10 @@ export default function Hero() {
     }, [slides.length]);
 
     useEffect(() => {
+        if (slides.length < 2) return;
         const timer = setInterval(nextSlide, 5000);
         return () => clearInterval(timer);
-    }, [nextSlide]);
-
-    // Reset index if slides array shrinks (e.g. a slide deactivated via realtime)
-    useEffect(() => {
-        if (current >= slides.length) setCurrent(0);
-    }, [slides.length, current]);
+    }, [nextSlide, slides.length]);
 
     return (
         <section id="home" className="relative w-full overflow-hidden">
@@ -95,11 +43,7 @@ export default function Hero() {
                         <div className="relative w-full h-full lg:ml-auto lg:w-[70%] lg:h-[55%] flex justify-center items-center">
 
                             {/* Main (large) slide */}
-                            {isPending ? (
-                                <SliderSkeleton />
-                            ) : (
-                                // <div className="relative w-[85%] h-[80%] z-20 shadow-2xl lg:absolute lg:w-[170%] lg:h-[130%] lg:bottom-[20%] lg:right-[40%]">
-                                <div className="relative w-[85%] h-[80%] z-20 shadow-2xl lg:absolute lg:w-[165%] lg:h-[130%] lg:bottom-[20%] lg:right-[40%]">
+                            <div className="relative w-[85%] h-[80%] z-20 shadow-2xl lg:absolute lg:w-[165%] lg:h-[130%] lg:bottom-[20%] lg:right-[40%]">
                                     {slides.map((slide, index) => (
                                         <Image
                                             key={slide.id}
@@ -128,12 +72,11 @@ export default function Hero() {
                                             />
                                         ))}
                                     </div>
-                                </div>
-                            )}
+                            </div>
 
                             {/* Preview (small) slide — bottom-right peek */}
                             <div className="absolute bottom-3 right-3 w-[40%] h-[30%] z-10 lg:relative lg:w-full lg:h-full lg:bottom-0 lg:right-0">
-                                {!isPending && (
+                                {slides.length > 1 && (
                                     <Image
                                         src={slides[nextIndex].image_url}
                                         alt={`Preview: ${slides[nextIndex].alt_text}`}
@@ -186,7 +129,7 @@ export default function Hero() {
                             </h1>
 
                             <div className="mt-6 text-[14px] lg:text-[15px] text-gray-600 dark:text-gray-400 max-w-full [@media(min-width:700px)]:max-w-[22rem] lg:max-w-md mx-auto lg:mx-0 leading-7 font-['Poppins'] font-light min-h-[10px]">
-                                At Yuri Perfections, we deliver high-quality interior and exterior finishing solutions for both residential and commercial spaces. With a strong focus on precision, craftsmanship, and detail, we transform environments into refined, functional spaces built to last.
+                                {text}
                             </div>
 
                             <div className="mt-7 flex flex-wrap justify-center lg:justify-start gap-3">

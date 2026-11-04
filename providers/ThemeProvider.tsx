@@ -1,87 +1,46 @@
 "use client";
 
-import { createContext, useState, useEffect, useContext } from "react";
-import Cookies from "js-cookie";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
-type ThemeContextType = {
-    theme: Theme;
-    setTheme: (theme: Theme) => void;
-};
+type ThemeContextType = { theme: Theme; setTheme: (theme: Theme) => void };
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+function applyTheme(theme: Theme) {
+    const html = document.documentElement;
+    html.classList.toggle("dark", theme === "dark");
+    html.classList.toggle("light", theme !== "dark");
+    html.style.colorScheme = theme;
+    html.setAttribute("data-theme", theme);
+    document.cookie = `theme=${theme}; path=/; max-age=31536000; samesite=lax`;
+}
 
-export function ThemeProvider({
-    children,
-    defaultTheme = 'light'
-}: {
-    children: React.ReactNode;
-    defaultTheme?: Theme | any;
-}) {
-    // Use saved theme from cookies or fall back to provided default
-    const [theme, setTheme] = useState<Theme>(() => {
-        const savedTheme = Cookies.get('theme') as Theme;
-        return savedTheme || defaultTheme;
-    });
+/**
+ * The default still works without a provider (next-themes does the same): Next can render
+ * a layout's client components outside the root providers while it recovers from an
+ * error, and a theme toggle must never be what crashes that page.
+ */
+const ThemeContext = createContext<ThemeContextType>({
+    theme: "light",
+    setTheme: (theme) => applyTheme(theme),
+});
 
-    const applyTheme = (themeValue: Theme) => {
-        const html = document.documentElement;
-        const isDark = themeValue === 'dark';
+/** The class on <html> is set before paint by THEME_INIT_SCRIPT (lib/theme.ts). */
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+    // The server does not know the theme; read what the init script applied once mounted.
+    const [theme, setThemeState] = useState<Theme>("light");
 
-        // Add/remove classes
-        html.classList.toggle('dark', isDark);
-        html.classList.toggle('light', !isDark);
-
-        // Set color scheme
-        html.style.colorScheme = themeValue;
-
-        // Set data attribute
-        html.setAttribute('data-theme', themeValue);
-
-        // Save to cookies
-        Cookies.set('theme', themeValue, { expires: 365 });
-
-        // Dynamically load Highcharts theme
-        const existingLink = document.getElementById('highcharts-theme') as HTMLLinkElement | null;
-
-        if (isDark) {
-            if (!existingLink) {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.id = 'highcharts-theme';
-                link.href = '/highcharts/dark-unica.css';
-                document.head.appendChild(link);
-            }
-        } else {
-            if (existingLink) {
-                existingLink.remove();
-            }
-        }
-
-    };
-
-    // Apply theme on initial render
     useEffect(() => {
-        applyTheme(theme);
-    }, [theme]);
+        setThemeState(document.documentElement.classList.contains("dark") ? "dark" : "light");
+    }, []);
 
-    // Handler for theme changes
-    const handleSetTheme = (newTheme: Theme) => {
-        setTheme(newTheme);
-        applyTheme(newTheme);
-    };
+    const setTheme = useCallback((next: Theme) => {
+        setThemeState(next);
+        applyTheme(next);
+    }, []);
 
-    return (
-        <ThemeContext.Provider value={{ theme, setTheme: handleSetTheme }}>
-            {children}
-        </ThemeContext.Provider>
-    );
+    return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {
-    const context = useContext(ThemeContext);
-    if (!context) {
-        throw new Error("useTheme must be used within a ThemeProvider");
-    }
-    return context;
+    return useContext(ThemeContext);
 }
