@@ -1,175 +1,63 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
-import { useTheme } from "@/providers/ThemeProvider";
-import { FiArrowRight, FiArrowUpRight } from "react-icons/fi";
+import { useRef, useState } from "react";
 import Link from "next/link";
-import { BeforeAfter } from "@/components/helpers/BeforeAfter";
-import { projects as staticProjects } from "@/data/projects";
-import type { Project } from "@/services/projects-service";
-import {
-    getActiveProjects,
-    subscribeToProjects,
-    PROJECTS_QUERY_KEY,
-} from "@/services/projects-service";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiArrowRight, FiArrowUpRight, FiMapPin } from "react-icons/fi";
+import { BeforeAfter } from "@/components/BeforeAfter";
+import type { ProjectCard as Card } from "@/lib/types";
 
-// ── Convert static camelCase data → DB snake_case shape for fallback ──────────
-const FALLBACK_PROJECTS: Project[] = staticProjects.map((p) => ({
-    id: p.id,
-    slug: p.slug,
-    title: p.title,
-    style: p.style,
-    category: p.category,
-    location: p.location,
-    description: p.desc,
-    cover_before: p.coverBefore,
-    cover_after: p.coverAfter,
-    project_images: p.imgs.map((img, i) => ({
-        id: -(p.id * 100 + i),
-        project_id: p.id,
-        before: img.before,
-        after: img.after,
-        label: img.label,
-        order: i + 1,
-        created_at: "",
-    })),
-    order: p.id,
-    status: "active" as const,
-    created_at: "",
-}));
+/**
+ * The home page's portfolio, in the layout the client chose: category buttons, a featured
+ * box (details on the left, a sliding before/after on the right) and a row of sliding
+ * thumbnails below. Picking a thumbnail shows that project in the featured box; its page
+ * has every before/after, and /projects lists them all.
+ */
+export default function Projects({ projects }: { projects: Card[] }) {
+    const [category, setCategory] = useState("All");
+    const [selectedId, setSelectedId] = useState<number | null>(null);
+    const featuredBox = useRef<HTMLDivElement>(null);
 
-// ─── Thumbnail card ───────────────────────────────────────────────────────────
+    if (projects.length === 0) return null;
 
-function ProjectCard({
-    project,
-    isSelected,
-    onClick,
-}: {
-    project: Project;
-    isSelected: boolean;
-    onClick: () => void;
-}) {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: false, amount: 0.3 }}
-            onClick={onClick}
-            className={`group cursor-pointer relative overflow-hidden transition-all duration-300 ${isSelected ? "ring-[3px] ring-[#F5C518]" : ""
-                }`}
-        >
-            <BeforeAfter
-                beforeImage={project.cover_before}
-                afterImage={project.cover_after}
-                mode="drag"
-                style={{ height: 208 }}
-                beforeStyle={{ height: 208 }}
-                afterStyle={{ height: 208 }}
-                buttonStyle={{ width: 44, height: 44 }}
-            />
-            {/* Gradient + title overlay */}
-            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
-            <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-none">
-                <p className="text-[#F5C518] text-[9px] tracking-widest uppercase mb-1 font-['Poppins'] font-semibold">
-                    {project.style}
-                </p>
-                <p className="text-white text-sm font-['Poppins'] font-semibold leading-tight">
-                    {project.title}
-                </p>
-            </div>
-        </motion.div>
-    );
-}
-
-// ─── Main section ─────────────────────────────────────────────────────────────
-
-export default function Projects() {
-    const { theme } = useTheme();
-    const isDark = theme === "dark";
-    const queryClient = useQueryClient();
-
-    // ── Fetch projects via TanStack Query ─────────────────────────────────────
-    const { data: dbProjects, isPending, isError } = useQuery({
-        queryKey: PROJECTS_QUERY_KEY,
-        queryFn: getActiveProjects,
-    });
-
-    // ── Wire up Supabase realtime ─────────────────────────────────────────────
-    useEffect(() => {
-        const unsubscribe = subscribeToProjects(queryClient);
-        return () => unsubscribe();
-    }, [queryClient]);
-
-    const [activeCategory, setActiveCategory] = useState("All");
-    const [current, setCurrent] = useState(0);
-
-    // Use DB projects when available; fall back to hardcoded set
-    const projects =
-        !isPending && !isError && dbProjects && dbProjects.length > 0
-            ? dbProjects
-            : FALLBACK_PROJECTS;
-
-    // Derive categories dynamically from whatever data is loaded
     const categories = ["All", ...Array.from(new Set(projects.map((p) => p.category)))];
+    const filtered = category === "All" ? projects : projects.filter((p) => p.category === category);
+    const selected = filtered.find((p) => p.id === selectedId) ?? filtered[0];
 
-    // Reset to first item when the data source changes
-    useEffect(() => {
-        if (projects.length > 0) setCurrent(0);
-    }, [projects.length]);
-
-    const filtered =
-        activeCategory === "All"
-            ? projects
-            : projects.filter((p) => p.category === activeCategory);
-
-    // Keep current index in bounds when filter changes
-    useEffect(() => {
-        setCurrent(0);
-    }, [activeCategory]);
-
-    const selected = filtered[current] ?? filtered[0];
-
-    if (!selected) return null;
+    const select = (id: number) => {
+        setSelectedId(id);
+        // On a phone the featured box is above the thumbnails: bring it into view.
+        if (window.innerWidth < 1024) featuredBox.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
 
     return (
-        <section
-            id="projects"
-            className={`py-24 lg:py-36 ${isDark ? "bg-[#181B34]" : "bg-white"}`}
-        >
+        <section id="projects" className="py-24 lg:py-36 bg-white dark:bg-[#181B34]">
             <div className="max-w-7xl mx-auto px-6 lg:px-12">
-
-                {/* ── Header ── */}
+                {/* Header and category buttons */}
                 <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-12 gap-6">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: false, amount: 0.3 }}
-                    >
+                    <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }}>
                         <div className="flex items-center gap-3 mb-4">
                             <div className="h-px w-10 bg-[#F5C518]" />
-                            <span className={`text-xs tracking-[0.3em] uppercase font-semibold font-['Poppins'] ${isDark ? "text-[#F5C518]" : "text-[#181B34]/60"}`}>
-                                Portfolio
-                            </span>
+                            <span className="text-xs tracking-[0.3em] uppercase font-semibold text-[#181B34]/60 dark:text-[#F5C518]">Portfolio</span>
                         </div>
-                        <h2 className={`font-['Poppins'] font-bold text-4xl lg:text-5xl ${isDark ? "text-white" : "text-[#181B34]"}`}>
-                            Our Last Projects
-                        </h2>
+                        <h2 className="font-bold text-4xl lg:text-5xl text-[#181B34] dark:text-white">Our Latest Projects</h2>
                     </motion.div>
 
-                    {/* Category filters */}
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Filter projects by category">
                         {categories.map((cat) => (
                             <button
                                 key={cat}
-                                onClick={() => setActiveCategory(cat)}
-                                className={`px-4 py-2 text-xs tracking-[0.15em] uppercase font-semibold font-['Poppins'] transition-all duration-200 ${activeCategory === cat
-                                    ? "bg-[#F5C518] text-[#181B34]"
-                                    : isDark
-                                        ? "border border-white/20 text-white/50 hover:border-[#F5C518]/50 hover:text-[#F5C518]"
-                                        : "border border-slate-200 text-slate-400 hover:border-[#181B34]/40 hover:text-[#181B34]"
-                                    }`}
+                                type="button"
+                                aria-pressed={category === cat}
+                                onClick={() => {
+                                    setCategory(cat);
+                                    setSelectedId(null);
+                                }}
+                                className={`px-4 py-2 text-xs tracking-[0.15em] uppercase font-semibold transition-colors ${
+                                    category === cat
+                                        ? "bg-[#F5C518] text-[#181B34]"
+                                        : "border border-slate-200 text-slate-500 hover:border-[#181B34]/40 hover:text-[#181B34] dark:border-white/20 dark:text-white/50 dark:hover:border-[#F5C518]/50 dark:hover:text-[#F5C518]"
+                                }`}
                             >
                                 {cat}
                             </button>
@@ -177,98 +65,107 @@ export default function Projects() {
                     </div>
                 </div>
 
-                {/* ── Featured panel ── */}
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={selected.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="grid grid-cols-1 lg:grid-cols-2 gap-0 mb-16 overflow-hidden"
-                    >
-                        {/* Info */}
-                        <div className={`flex flex-col justify-center p-8 lg:p-12 ${isDark ? "bg-[#0f1124]" : "bg-[#F0F3FF]"}`}>
-                            <span className={`text-xs tracking-[0.25em] uppercase font-semibold font-['Poppins'] mb-3 flex items-center gap-3 ${isDark ? "text-[#F5C518]" : "text-[#181B34]/60"}`}>
-                                {selected.style}
-                                <span className="inline-block w-8 h-px bg-[#F5C518]" />
-                            </span>
-                            <h3 className={`font-['Poppins'] font-bold text-3xl mb-2 ${isDark ? "text-white" : "text-[#181B34]"}`}>
-                                {selected.title}
-                            </h3>
-                            <p className={`text-xs tracking-widest uppercase mb-6 font-['Poppins'] ${isDark ? "text-white/30" : "text-slate-400"}`}>
-                                {selected.location}
-                            </p>
-                            <p className={`text-sm leading-relaxed font-light mb-8 font-['Poppins'] ${isDark ? "text-white/60" : "text-slate-500"}`}>
-                                {selected.description}
-                            </p>
-                            <div className="flex flex-wrap gap-3">
-                                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+                {/* Featured box */}
+                <div ref={featuredBox} className="scroll-mt-24">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={selected.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="grid grid-cols-1 lg:grid-cols-2 mb-10 overflow-hidden"
+                            data-testid="featured-project"
+                        >
+                            <div className="flex flex-col justify-center p-8 lg:p-12 bg-[#F0F3FF] dark:bg-[#0f1124] order-2 lg:order-1">
+                                {selected.style && (
+                                    <span className="text-xs tracking-[0.25em] uppercase font-semibold mb-3 flex items-center gap-3 text-[#181B34]/60 dark:text-[#F5C518]">
+                                        {selected.style}
+                                        <span className="inline-block w-8 h-px bg-[#F5C518]" />
+                                    </span>
+                                )}
+                                <h3 className="font-bold text-3xl mb-2 text-[#181B34] dark:text-white">{selected.title}</h3>
+                                {selected.location && (
+                                    <p className="text-xs tracking-widest uppercase mb-6 flex items-center gap-1.5 text-slate-400 dark:text-white/40">
+                                        <FiMapPin size={12} /> {selected.location}
+                                    </p>
+                                )}
+                                {selected.description && (
+                                    <p className="text-sm leading-relaxed font-light mb-8 line-clamp-4 text-slate-500 dark:text-white/60">{selected.description}</p>
+                                )}
+                                <div className="flex flex-wrap gap-3">
                                     <Link
                                         href={`/projects/${selected.slug}`}
-                                        className="inline-flex items-center gap-3 px-6 py-3 text-xs tracking-[0.15em] uppercase font-bold font-['Poppins'] bg-[#F5C518] text-[#181B34] hover:bg-[#e6b800] transition-colors"
+                                        className="inline-flex items-center gap-3 px-6 py-3 text-xs tracking-[0.15em] uppercase font-bold bg-[#F5C518] text-[#181B34] hover:bg-[#e6b800] transition-colors"
                                     >
                                         View Before &amp; Afters
                                         <FiArrowRight size={14} />
                                     </Link>
-                                </motion.div>
-                                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                                     <Link
                                         href="/projects"
-                                        className={`inline-flex items-center gap-2 px-6 py-3 text-xs tracking-[0.15em] uppercase font-bold font-['Poppins'] border transition-colors ${isDark
-                                            ? "border-white/20 text-white/70 hover:border-[#F5C518] hover:text-[#F5C518]"
-                                            : "border-[#181B34]/20 text-[#181B34]/60 hover:border-[#181B34] hover:text-[#181B34]"
-                                            }`}
+                                        className="inline-flex items-center gap-2 px-6 py-3 text-xs tracking-[0.15em] uppercase font-bold border transition-colors border-[#181B34]/20 text-[#181B34]/70 hover:border-[#181B34] hover:text-[#181B34] dark:border-white/20 dark:text-white/70 dark:hover:border-[#F5C518] dark:hover:text-[#F5C518]"
                                     >
                                         All Projects
                                         <FiArrowUpRight size={14} />
                                     </Link>
-                                </motion.div>
+                                </div>
                             </div>
-                        </div>
-
-                        {/* Featured before/after slider */}
-                        <div className="min-h-100 lg:min-h-0">
                             <BeforeAfter
-                                beforeImage={selected.cover_before}
-                                afterImage={selected.cover_after}
-                                mode="drag"
-                                style={{ height: '100%', minHeight: 400, width: '100%' }}
-                                beforeStyle={{ height: '100%' }}
-                                afterStyle={{ height: '100%' }}
-                                buttonStyle={{ width: 44, height: 44 }}
+                                before={selected.cover_before}
+                                after={selected.cover_after}
+                                alt={selected.title}
+                                sizes="(max-width: 1024px) 100vw, 50vw"
+                                className="aspect-[4/3] lg:aspect-auto lg:min-h-[460px] order-1 lg:order-2"
                             />
-                        </div>
-                    </motion.div>
-                </AnimatePresence>
-
-                {/* ── Thumbnail grid ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {filtered.map((p, i) => (
-                        <ProjectCard
-                            key={p.id}
-                            project={p}
-                            isSelected={current === i}
-                            onClick={() => setCurrent(i)}
-                        />
-                    ))}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
 
-                {/* ── Browse all link ── */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: false, amount: 0.5 }}
-                    className="mt-12 text-center"
-                >
+                {/* Thumbnails: each slides, and a tap shows it in the featured box */}
+                {filtered.length > 1 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {filtered.map((p) => {
+                            const isSelected = p.id === selected.id;
+                            return (
+                                <div
+                                    key={p.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-pressed={isSelected}
+                                    aria-label={`Show ${p.title}`}
+                                    onClick={() => select(p.id)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            select(p.id);
+                                        }
+                                    }}
+                                    className={`group relative cursor-pointer overflow-hidden outline-none transition-shadow focus-visible:ring-4 focus-visible:ring-[#F5C518]/60 ${
+                                        isSelected ? "ring-[3px] ring-[#F5C518]" : ""
+                                    }`}
+                                    data-testid="project-thumb"
+                                >
+                                    <BeforeAfter before={p.cover_before} after={p.cover_after} alt={p.title} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" className="h-52" compact />
+                                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/10 to-transparent pointer-events-none" />
+                                    <div className="absolute bottom-0 inset-x-0 p-4 pointer-events-none">
+                                        {p.style && <p className="text-[#F5C518] text-[9px] tracking-widest uppercase mb-1 font-semibold">{p.style}</p>}
+                                        <p className="text-white text-sm font-semibold leading-tight">{p.title}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                <div className="mt-12 text-center">
                     <Link
                         href="/projects"
-                        className={`inline-flex items-center gap-3 text-sm font-semibold font-['Poppins'] tracking-[0.15em] uppercase transition-colors ${isDark ? "text-white/50 hover:text-[#F5C518]" : "text-slate-400 hover:text-[#181B34]"
-                            }`}
+                        className="inline-flex items-center gap-3 text-sm font-semibold tracking-[0.15em] uppercase transition-colors text-slate-400 hover:text-[#181B34] dark:text-white/50 dark:hover:text-[#F5C518]"
                     >
-                        Browse All Before &amp; Afters
+                        Browse All Projects
                         <FiArrowRight size={16} />
                     </Link>
-                </motion.div>
+                </div>
             </div>
         </section>
     );
