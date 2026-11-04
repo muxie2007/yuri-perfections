@@ -74,3 +74,23 @@ html.light body {
 [data-framer-component-type] {
   will-change: transform, opacity;
 }
+
+/* ── Pointer on everything clickable (Tailwind 4 no longer sets it on buttons) ── */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="switch"]:not(:disabled),
+  select:not(:disabled),
+  summary,
+  label[for],
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="date"]:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="switch"]:disabled {
+    cursor: not-allowed;
+  }
+}

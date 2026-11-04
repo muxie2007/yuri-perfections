@@ -64,8 +64,15 @@ export default function Navbar() {
     }, []);
 
     // ─── Determine if we are on the homepage ───
-    const isHomePage = pathname === "/" || pathname === "/#home";
+    const isHomePage = pathname === "/";
     const isProjectPage = pathname === "/projects" || pathname.startsWith("/projects/");
+
+    // On the home page links scroll to sections; elsewhere they go home first, except
+    // Projects, which opens the full portfolio page.
+    const linkHref = (hash: string) => {
+        if (isHomePage) return hash;
+        return hash === "#projects" ? "/projects" : `/${hash}`;
+    };
 
     return (
         <>
@@ -78,15 +85,17 @@ export default function Navbar() {
           ─── */}
             <nav
                 className={`fixed overflow-hidden top-0 left-0 right-0 z-50 transition-all duration-300
-                    ${scrolled || menuOpen
-                        ? "backdrop-blur-md bg-white/70 dark:bg-[#181B34]/70 shadow-sm pt-3 md:pt-0"
+                    ${scrolled || menuOpen || !isHomePage
+                        // Solid on every page but the home page's top: other pages open on
+                        // dark photos, where a see-through bar's dark links disappear.
+                        ? "backdrop-blur-md bg-white/90 dark:bg-[#181B34]/90 shadow-sm"
                         : "bg-transparent"
                     }`}
             >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 flex items-center justify-between h-[72px]">
 
                     {/* Logo — sits on the white left side */}
-                    <a href="#home" className="flex items-center">
+                    <a href={isHomePage ? "#home" : "/"} className="flex items-center" aria-label="Yuri Perfections home">
                         {/* Light mode logo */}
                         <Image
                             src="/logos/yuri-white-bg-removebg.png"
@@ -118,7 +127,7 @@ export default function Navbar() {
                                 : activeSection === id;
 
                             // ─── Fix links to scroll to homepage sections if not on homepage ───
-                            const href = isHomePage ? link.href : `/${link.href}`;
+                            const href = linkHref(link.href);
 
                             return (
                                 <a
@@ -144,7 +153,8 @@ export default function Navbar() {
                             aria-label="Toggle theme"
                             className="w-9 h-9 rounded-full flex items-center justify-center transition-colors border border-[#181B34]/20 text-[#181B34] hover:bg-[#181B34]/8 dark:border-white/15 dark:text-white dark:hover:bg-white/10"
                         >
-                            {theme === "dark" ? <FiSun size={15} /> : <FiMoon size={15} />}
+                            <FiSun size={15} className="hidden dark:block" />
+                            <FiMoon size={15} className="dark:hidden" />
                         </button>
                     </div>
 
@@ -155,11 +165,14 @@ export default function Navbar() {
                             aria-label="Toggle theme"
                             className="w-9 h-9 rounded-full flex items-center justify-center border border-[#181B34]/20 text-[#181B34] dark:border-white/15 dark:text-white"
                         >
-                            {theme === "dark" ? <FiSun size={15} /> : <FiMoon size={15} />}
+                            <FiSun size={15} className="hidden dark:block" />
+                            <FiMoon size={15} className="dark:hidden" />
                         </button>
 
                         <button
                             onClick={() => setMenuOpen(!menuOpen)}
+                            aria-label={menuOpen ? "Close menu" : "Open menu"}
+                            aria-expanded={menuOpen}
                             className="text-[#181B34] dark:text-white"
                         >
                             {menuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
@@ -176,6 +189,9 @@ export default function Navbar() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -16 }}
                         transition={{ duration: 0.28 }}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Menu"
                         className="fixed inset-0 z-40 pt-[72px] bg-white dark:bg-[#181B34]"
                     >
                         {/* Logo */}
@@ -189,7 +205,7 @@ export default function Navbar() {
                                     : activeSection === id;
 
                                 // ─── Fix links for mobile too ───
-                                const href = isHomePage ? link.href : `/${link.href}`;
+                                const href = linkHref(link.href);
 
                                 return (
                                     <motion.a
@@ -211,7 +227,7 @@ export default function Navbar() {
                             })}
 
                             <motion.a
-                                href="#contact"
+                                href={linkHref("#contact")}
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ delay: 0.32 }}
